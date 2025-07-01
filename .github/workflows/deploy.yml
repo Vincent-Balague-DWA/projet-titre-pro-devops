@@ -50,14 +50,6 @@ jobs:
           npm run build
           echo "✅ Backend compilé"
 
-      - name: Compiler le Backend
-        working-directory: ./backend
-        run: |
-          echo "⚙️ Compilation du Backend..."
-          npm install
-          npm run build
-          echo "✅ Backend compilé"
-
       - name: Login Docker Hub
         run: |
           echo "🔑 Connexion à Docker Hub..."
@@ -72,31 +64,33 @@ jobs:
           export DOCKER_BUILDKIT=0
           export COMPOSE_DOCKER_CLI_BUILD=0
           
-          # Créer des variables pour éviter les problèmes de parsing
-          USERNAME="${{ secrets.DOCKER_USERNAME }}"
+          # Nettoyer et créer des variables propres
+          USERNAME=$(echo "${{ secrets.DOCKER_USERNAME }}" | tr -d '\n\r ')
           IMAGE_TAG="backend-$(date +%Y%m%d-%H%M%S)"
           
-          echo "Building image: $USERNAME/devops-todolist:$IMAGE_TAG"
+          echo "Username: '$USERNAME'"
+          echo "Image tag: '$IMAGE_TAG'"
+          echo "Full image name: '$USERNAME/devops-todolist:$IMAGE_TAG'"
           
-          # Build de l'image (legacy mode - pas d'option --progress)
+          # Build de l'image (legacy mode)
           echo "🔨 Début du build Docker..."
-          docker build --no-cache -t "$USERNAME/devops-todolist:$IMAGE_TAG" .
+          docker build --no-cache -t "${USERNAME}/devops-todolist:${IMAGE_TAG}" .
           echo "✅ Image avec tag temporaire créée"
           
-          docker tag "$USERNAME/devops-todolist:$IMAGE_TAG" "$USERNAME/devops-todolist:latest"
+          docker tag "${USERNAME}/devops-todolist:${IMAGE_TAG}" "${USERNAME}/devops-todolist:latest"
           echo "✅ Tag latest créé"
           
           # Push des images
           echo "📤 Push de l'image avec tag..."
-          docker push "$USERNAME/devops-todolist:$IMAGE_TAG"
+          docker push "${USERNAME}/devops-todolist:${IMAGE_TAG}"
           echo "✅ Image avec tag poussée"
           
           echo "📤 Push de l'image latest..."
-          docker push "$USERNAME/devops-todolist:latest"
+          docker push "${USERNAME}/devops-todolist:latest"
           echo "✅ Image latest poussée"
           
           # Sauvegarder le tag pour Ansible
-          echo "$IMAGE_TAG" > ../docker-image-tag.txt
+          echo "${IMAGE_TAG}" > ../docker-image-tag.txt
           echo "✅ Tag sauvegardé: $IMAGE_TAG"
           
       - name: Compiler le Frontend
