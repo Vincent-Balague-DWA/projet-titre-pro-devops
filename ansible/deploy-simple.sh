@@ -100,7 +100,8 @@ ANSIBLE_HOST_KEY_CHECKING=False ansible-playbook -i inventory.yml deploy-apps.ym
   -e "db_user=${DB_USER}" \
   -e "db_password=${DB_PASSWORD}" \
   -e "database_private_ip=${DATABASE_PRIVATE_IP}" \
-  -e "backend_private_ip=${BACKEND_PRIVATE_IP}"
+  -e "backend_private_ip=${BACKEND_PRIVATE_IP}" \
+  -e "docker_username=${DOCKER_USERNAME}"
 
 if [ $? -eq 0 ]; then
     echo ""

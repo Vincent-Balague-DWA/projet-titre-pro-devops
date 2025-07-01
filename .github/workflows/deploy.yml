@@ -42,6 +42,40 @@ jobs:
         with:
           node-version: '18'
 
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Compiler le Backend
+        working-directory: ./backend
+        run: |
+          echo "⚙️ Compilation du Backend..."
+          npm install
+          npm run build
+          echo "✅ Backend compilé"
+
+      - name: Builder et pousser l'image Docker Backend
+        working-directory: ./backend
+        run: |
+          echo "🐳 Build de l'image Docker Backend..."
+          # Créer une image avec timestamp pour éviter les conflits
+          IMAGE_TAG="backend-$(date +%Y%m%d-%H%M%S)"
+          docker build -t ${{ secrets.DOCKER_USERNAME }}/devops-todolist:$IMAGE_TAG .
+          docker build -t ${{ secrets.DOCKER_USERNAME }}/devops-todolist:latest .
+          
+          # Pousser les images
+          docker push ${{ secrets.DOCKER_USERNAME }}/devops-todolist:$IMAGE_TAG
+          docker push ${{ secrets.DOCKER_USERNAME }}/devops-todolist:latest
+          
+          # Sauvegarder le tag pour Ansible
+          echo $IMAGE_TAG > ../docker-image-tag.txt
+          echo "✅ Image Docker créée et poussée"
+
       - name: Compiler le Frontend
         working-directory: ./frontend
         run: |
@@ -52,15 +86,26 @@ jobs:
           tar -czf frontend-build.tar.gz -C frontend dist/
           echo "✅ Frontend compilé et archivé"
 
-      - name: Compiler le Backend
-        working-directory: ./backend
+      # ❌ SUPPRIMER cette section car on utilise Docker maintenant :
+      # - name: Compiler le Backend
+      #   working-directory: ./backend
+      #   run: |
+      #     echo "⚙️ Compilation du Backend..."
+      #     npm install
+      #     npm run build
+      #     cd ..
+      #     tar -czf backend-build.tar.gz -C backend dist/ package.json package-lock.json
+      #     echo "✅ Backend compilé et archivé"
+
+      - name: Compiler le Frontend
+        working-directory: ./frontend
         run: |
-          echo "⚙️ Compilation du Backend..."
+          echo "🎨 Compilation du Frontend..."
           npm install
           npm run build
           cd ..
-          tar -czf backend-build.tar.gz -C backend dist/ package.json package-lock.json
-          echo "✅ Backend compilé et archivé"
+          tar -czf frontend-build.tar.gz -C frontend dist/
+          echo "✅ Frontend compilé et archivé"
 
       - name: Préparer la clé SSH
         run: |
@@ -93,15 +138,15 @@ jobs:
           echo "Frontend IP: $FRONTEND_IP"
           echo "Backend IP: $BACKEND_IP"
           
-          # Transfer frontend build
+          # Transfer frontend build (comme avant)
           echo "Transfert frontend build..."
           scp -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no \
             ../frontend-build.tar.gz ubuntu@$FRONTEND_IP:/tmp/
             
-          # Transfer backend build  
-          echo "Transfert backend build..."
+          # Transfer Docker image tag pour le backend
+          echo "Transfert Docker image tag..."
           scp -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no \
-            ../backend-build.tar.gz ubuntu@$BACKEND_IP:/tmp/
+            ../docker-image-tag.txt ubuntu@$BACKEND_IP:/tmp/
           
           echo "✅ Builds transférés"
 
@@ -111,6 +156,7 @@ jobs:
           DB_NAME: ${{ secrets.DB_NAME }}
           DB_USER: ${{ secrets.DB_USER }}
           DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+          DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
         run: |
           chmod +x deploy-simple.sh
           ./deploy-simple.sh

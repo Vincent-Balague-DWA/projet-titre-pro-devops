@@ -1,0 +1,17 @@
+# backend/.dockerignore
+node_modules
+npm-debug.log
+src
+*.ts
+*.md
+.git
+.gitignore
+.env
+.env.example
+test
+coverage
+.nyc_output
+.eslintrc.js
+.prettierrc
+tsconfig*.json
+jest.config.js

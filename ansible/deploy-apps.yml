@@ -29,79 +29,65 @@
         state: present
         login_unix_socket: /var/run/mysqld/mysqld.sock
 
-- name: Déployer l'API Backend (NestJS)
+- name: Déployer l'API Backend (NestJS) avec Docker
   hosts: backend
   become: yes
   tasks:
-    - name: Supprimer Node.js et dépendances anciennes
+    - name: Installer Docker
       apt:
-        name:
-          - nodejs
-          - libnode-dev
-          - libnode72
-        state: absent
-      ignore_errors: yes
+        name: docker.io
+        state: present
+        update_cache: yes
 
-    - name: Nettoyer les paquets inutiles
-      apt:
-        autoremove: yes
-      ignore_errors: yes
+    - name: Démarrer et activer Docker
+      systemd:
+        name: docker
+        state: started
+        enabled: yes
 
-    - name: Ajouter le dépôt NodeSource (18.x) et installer Node.js 18
-      shell: |
-        curl -fsSL https://deb.nodesource.com/setup_18.x | bash -
-        apt-get install -y nodejs
-      args:
-        executable: /bin/bash
+    - name: Ajouter l'utilisateur ubuntu au groupe docker
+      user:
+        name: ubuntu
+        groups: docker
+        append: yes
 
-    - name: Installer PM2
-      npm:
-        name: pm2
-        global: yes
-
-    # ❌ SUPPRIMÉE : - name: Copier le code Backend (synchronize)
-    
-    - name: Créer le dossier backend
-      file:
-        path: /var/www/backend
-        state: directory
-        owner: ubuntu
-        group: ubuntu
-        mode: '0755'
-
-    - name: Extraire le build Backend pré-compilé
-      shell: |
-        cd /var/www/backend
-        tar -xzf /tmp/backend-build.tar.gz
-        rm /tmp/backend-build.tar.gz
-        chown -R ubuntu:ubuntu /var/www/backend
-
-    - name: Installer seulement les dépendances de production
-      shell: |
-        cd /var/www/backend
-        npm install --only=production
+    - name: Récupérer le tag de l'image Docker
+      shell: cat /tmp/docker-image-tag.txt
+      register: docker_image_tag
 
     - name: Créer le fichier de configuration Backend
       template:
         src: backend.env.j2
-        dest: /var/www/backend/.env
+        dest: /tmp/backend.env
         owner: ubuntu
         group: ubuntu
         mode: '0600'
 
-    - name: Lancer l'application Backend avec PM2
+    - name: Arrêter le conteneur existant s'il existe
       shell: |
-        cd /var/www/backend
-        pm2 stop backend || true
-        pm2 delete backend || true
-        pm2 start dist/main.js --name backend
-        pm2 save
+        docker stop backend || true
+        docker rm backend || true
       become_user: ubuntu
 
-    - name: Configurer le démarrage automatique de PM2
+    - name: Déployer le Backend avec Docker
       shell: |
-        env PATH=$PATH:/usr/bin pm2 startup systemd -u ubuntu --hp /home/ubuntu
-      become: yes
+        docker pull {{ docker_username }}/devops-todolist:{{ docker_image_tag.stdout }}
+        docker run -d \
+          --name backend \
+          --restart unless-stopped \
+          -p 3000:3000 \
+          --env-file /tmp/backend.env \
+          {{ docker_username }}/devops-todolist:{{ docker_image_tag.stdout }}
+      become_user: ubuntu
+
+    - name: Vérifier que le conteneur fonctionne
+      shell: docker ps | grep backend
+      become_user: ubuntu
+      register: container_status
+
+    - name: Afficher le statut du conteneur
+      debug:
+        msg: "Backend container status: {{ container_status.stdout }}"
 
 - name: Déployer le Frontend React avec Nginx
   hosts: frontend
