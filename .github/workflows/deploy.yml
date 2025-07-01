@@ -49,6 +49,8 @@ jobs:
         working-directory: ./terraform
         run: |
           terraform init
+          # Détruire l'infra existante (ignore les erreurs si rien n'existe)
+          terraform destroy -auto-approve || true
           terraform apply -auto-approve
 
       - name: Déployer l'application avec Ansible
