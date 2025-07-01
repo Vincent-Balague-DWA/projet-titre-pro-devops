@@ -65,24 +65,21 @@
 
     - name: Arrêter le conteneur existant s'il existe
       shell: |
-        docker stop backend || true
-        docker rm backend || true
-      become_user: ubuntu
+        sudo docker stop backend || true
+        sudo docker rm backend || true
 
     - name: Déployer le Backend avec Docker
       shell: |
-        docker pull {{ docker_username }}/devops-todolist:{{ docker_image_tag.stdout }}
-        docker run -d \
+        sudo docker pull {{ docker_username }}/devops-todolist:{{ docker_image_tag.stdout }}
+        sudo docker run -d \
           --name backend \
           --restart unless-stopped \
           -p 3000:3000 \
           --env-file /tmp/backend.env \
           {{ docker_username }}/devops-todolist:{{ docker_image_tag.stdout }}
-      become_user: ubuntu
 
     - name: Vérifier que le conteneur fonctionne
-      shell: docker ps | grep backend
-      become_user: ubuntu
+      shell: sudo docker ps | grep backend
       register: container_status
 
     - name: Afficher le statut du conteneur
