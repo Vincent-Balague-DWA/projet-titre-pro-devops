@@ -68,14 +68,6 @@ jobs:
         run: |
           echo "🐳 Build de l'image Docker Backend..."
           
-          # Debug: vérifier le contenu du dossier
-          echo "Contenu du dossier:"
-          ls -la
-          
-          # Vérifier le Dockerfile
-          echo "Contenu du Dockerfile:"
-          cat Dockerfile
-          
           # Forcer l'utilisation de docker build standard
           export DOCKER_BUILDKIT=0
           export COMPOSE_DOCKER_CLI_BUILD=0
@@ -86,9 +78,9 @@ jobs:
           
           echo "Building image: $USERNAME/devops-todolist:$IMAGE_TAG"
           
-          # Build de l'image avec verbosité maximale
+          # Build de l'image (legacy mode - pas d'option --progress)
           echo "🔨 Début du build Docker..."
-          docker build --no-cache --progress=plain -t "$USERNAME/devops-todolist:$IMAGE_TAG" . 2>&1
+          docker build --no-cache -t "$USERNAME/devops-todolist:$IMAGE_TAG" .
           echo "✅ Image avec tag temporaire créée"
           
           docker tag "$USERNAME/devops-todolist:$IMAGE_TAG" "$USERNAME/devops-todolist:latest"
@@ -106,7 +98,7 @@ jobs:
           # Sauvegarder le tag pour Ansible
           echo "$IMAGE_TAG" > ../docker-image-tag.txt
           echo "✅ Tag sauvegardé: $IMAGE_TAG"
-
+          
       - name: Compiler le Frontend
         working-directory: ./frontend
         run: |
