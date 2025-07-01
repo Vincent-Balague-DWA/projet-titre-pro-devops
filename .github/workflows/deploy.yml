@@ -49,8 +49,9 @@ jobs:
         working-directory: ./terraform
         run: |
           terraform init
-          # Détruire l'infra existante (ignore les erreurs si rien n'existe)
           terraform destroy -auto-approve || true
+          # Attendre que AWS supprime vraiment les ressources
+          sleep 180  # 3 minutes au lieu de quelques secondes
           terraform apply -auto-approve
 
       - name: Attendre que les instances soient prêtes
