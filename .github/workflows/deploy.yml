@@ -53,8 +53,15 @@ jobs:
           terraform destroy -auto-approve || true
           terraform apply -auto-approve
 
+      - name: Attendre que les instances soient prêtes
+        run: sleep 60
+
       - name: Déployer l'application avec Ansible
         working-directory: ./ansible
         run: |
-          ansible-playbook -i inventory.yml deploy-apps.yml --verbose
+          chmod +x deploy-simple.sh
+          # Modifier le script pour utiliser la bonne clé SSH
+          sed -i 's/id_rsa_devops/id_rsa/g' deploy-simple.sh
+          # Exécuter le script
+          ./deploy-simple.sh
 
