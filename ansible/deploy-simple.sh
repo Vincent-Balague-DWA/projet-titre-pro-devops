@@ -18,6 +18,9 @@ FRONTEND_IP=$(terraform output -raw frontend_public_ip 2>/dev/null)
 BACKEND_IP=$(terraform output -raw backend_public_ip 2>/dev/null)
 DATABASE_IP=$(terraform output -raw database_public_ip 2>/dev/null)
 
+DATABASE_PRIVATE_IP=$(terraform output -raw database_private_ip 2>/dev/null)
+BACKEND_PRIVATE_IP=$(terraform output -raw backend_private_ip 2>/dev/null)
+
 cd ../ansible
 
 if [ -z "$FRONTEND_IP" ] || [ -z "$BACKEND_IP" ] || [ -z "$DATABASE_IP" ]; then
@@ -95,7 +98,9 @@ echo "📦 Déploiement des applications..."
 ANSIBLE_HOST_KEY_CHECKING=False ansible-playbook -i inventory.yml deploy-apps.yml -v \
   -e "db_name=${DB_NAME}" \
   -e "db_user=${DB_USER}" \
-  -e "db_password=${DB_PASSWORD}"
+  -e "db_password=${DB_PASSWORD}" \
+  -e "database_private_ip=${DATABASE_PRIVATE_IP}" \
+  -e "backend_private_ip=${BACKEND_PRIVATE_IP}"
 
 if [ $? -eq 0 ]; then
     echo ""
