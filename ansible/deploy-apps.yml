@@ -48,6 +48,12 @@
         state: started
         enabled: yes
 
+  handlers:
+    - name: restart datadog
+      systemd:
+        name: datadog-agent
+        state: restarted
+
 - name: Déployer l'API Backend (NestJS) avec Docker
   hosts: backend
   become: yes
@@ -124,6 +130,12 @@
         state: started
         enabled: yes
 
+  handlers:
+    - name: restart datadog
+      systemd:
+        name: datadog-agent
+        state: restarted
+
 - name: Déployer le Frontend React avec Nginx
   hosts: frontend
   become: yes
@@ -193,7 +205,6 @@
         state: started
         enabled: yes
 
-# ===== HANDLERS - À LA TOUTE FIN DU FICHIER =====
   handlers:
     - name: restart datadog
       systemd:
