@@ -19,7 +19,7 @@ jobs:
       TF_VAR_project_name:     devops-todouxlist
       TF_VAR_aws_region:       eu-west-1
       TF_VAR_ssh_public_key_path: ~/.ssh/id_rsa_devops.pub
-      TF_VAR_allowed_ssh_ips:  '["88.160.144.47/32"]'  # à adapter
+      TF_VAR_allowed_ssh_ips:  '["0.0.0.0/0"]'  # Modifié pour GitHub Actions
 
     steps:
       - name: Checkout du dépôt
@@ -37,6 +37,31 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y terraform ansible
 
+      - name: Installer Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+
+      - name: Compiler le Frontend
+        working-directory: ./frontend
+        run: |
+          echo "🎨 Compilation du Frontend..."
+          npm install
+          npm run build
+          cd ..
+          tar -czf frontend-build.tar.gz -C frontend dist/
+          echo "✅ Frontend compilé et archivé"
+
+      - name: Compiler le Backend
+        working-directory: ./backend
+        run: |
+          echo "⚙️ Compilation du Backend..."
+          npm install
+          npm run build
+          cd ..
+          tar -czf backend-build.tar.gz -C backend dist/ package.json package-lock.json
+          echo "✅ Backend compilé et archivé"
+
       - name: Préparer la clé SSH
         run: |
           mkdir -p ~/.ssh
@@ -48,12 +73,37 @@ jobs:
       - name: Déployer l'infrastructure avec Terraform
         working-directory: ./terraform
         run: |
+          echo "🏗️ Déploiement de l'infrastructure..."
           terraform init
-          terraform destroy -auto-approve || true
           terraform apply -auto-approve
+          echo "✅ Infrastructure déployée"
 
-      - name: Attendre que les instances soient prêtes
-        run: sleep 120
+      - name: Transférer les builds sur les serveurs
+        working-directory: ./terraform
+        run: |
+          echo "📦 Transfert des builds vers les serveurs..."
+          FRONTEND_IP=$(terraform output -raw frontend_public_ip)
+          BACKEND_IP=$(terraform output -raw backend_public_ip)
+          
+          echo "Frontend IP: $FRONTEND_IP"
+          echo "Backend IP: $BACKEND_IP"
+          
+          # Transfer frontend build
+          echo "Transfert frontend build..."
+          scp -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no \
+            ../frontend-build.tar.gz ubuntu@$FRONTEND_IP:/tmp/
+            
+          # Transfer backend build  
+          echo "Transfert backend build..."
+          scp -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no \
+            ../backend-build.tar.gz ubuntu@$BACKEND_IP:/tmp/
+          
+          echo "✅ Builds transférés"
+
+      - name: Attendre que les instances soient prêtes pour SSH
+        run: |
+          echo "⏳ Attente de l'initialisation des instances EC2..."
+          sleep 120
 
       - name: Déployer l'application avec Ansible
         working-directory: ./ansible
@@ -63,8 +113,4 @@ jobs:
           DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
         run: |
           chmod +x deploy-simple.sh
-          # Modifier le script pour utiliser la bonne clé SSH
-          sed -i 's/id_rsa_devops/id_rsa/g' deploy-simple.sh
-          # Exécuter le script
           ./deploy-simple.sh
-

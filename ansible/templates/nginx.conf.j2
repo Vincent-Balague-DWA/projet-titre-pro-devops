@@ -1,20 +1,31 @@
 server {
     listen 80;
-    server_name _;
+    server_name {{ ansible_default_ipv4.address }};
+    
+    root /var/www/frontend/dist;  # ou /build selon votre config
+    index index.html index.htm;
 
-    root /var/www/frontend;
-    index index.html;
-
+    # Gestion des routes SPA (Single Page Application)
     location / {
-        try_files $uri /index.html;
+        try_files $uri $uri/ /index.html;
     }
 
-    location /api/ {
-        proxy_pass http://{{ hostvars['backend-server']['ansible_default_ipv4']['address'] }}:3000/;
+    # Cache des assets statiques
+    location ~* \.(js|css|png|jpg|jpeg|gif|ico|svg)$ {
+        expires 1y;
+        add_header Cache-Control "public, immutable";
+    }
+
+    # Proxy vers l'API backend si nécessaire
+    location /api {
+        proxy_pass http://{{ backend_private_ip }}:3000;
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection 'upgrade';
         proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
         proxy_cache_bypass $http_upgrade;
     }
 }

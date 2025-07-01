@@ -65,16 +65,42 @@
         dest: /var/www/backend/
         recursive: yes
 
-    - name: Installer les dépendances Backend
+    - name: Créer le dossier backend
+      file:
+        path: /var/www/backend
+        state: directory
+        owner: ubuntu
+        group: ubuntu
+        mode: '0755'
+
+    - name: Extraire le build Backend pré-compilé
       shell: |
         cd /var/www/backend
-        npm install
+        tar -xzf /tmp/backend-build.tar.gz
+        rm /tmp/backend-build.tar.gz
+        chown -R ubuntu:ubuntu /var/www/backend
+
+    - name: Installer seulement les dépendances de production
+      shell: |
+        cd /var/www/backend
+        npm install --only=production
+
+    - name: Créer le fichier de configuration Backend
+      template:
+        src: backend.env.j2
+        dest: /var/www/backend/.env
+        owner: ubuntu
+        group: ubuntu
+        mode: '0600'
 
     - name: Lancer l'application Backend avec PM2
       shell: |
         cd /var/www/backend
+        pm2 stop backend || true
+        pm2 delete backend || true
         pm2 start dist/main.js --name backend
         pm2 save
+      become_user: ubuntu
 
     - name: Configurer le démarrage automatique de PM2
       shell: |
@@ -85,42 +111,30 @@
   hosts: frontend
   become: yes
   tasks:
-    - name: Supprimer Node.js et dépendances anciennes
-      apt:
-        name:
-          - nodejs
-          - libnode-dev
-          - libnode72
-        state: absent
-      ignore_errors: yes
+    - name: Créer le dossier frontend
+      file:
+        path: /var/www/frontend
+        state: directory
+        owner: www-data
+        group: www-data
+        mode: '0755'
 
-    - name: Nettoyer les paquets inutiles
-      apt:
-        autoremove: yes
-      ignore_errors: yes
-
-    - name: Ajouter le dépôt NodeSource (18.x) et installer Node.js 18 et Nginx
+    - name: Extraire le build Frontend pré-compilé
       shell: |
-        curl -fsSL https://deb.nodesource.com/setup_18.x | bash -
-        apt-get install -y nodejs nginx
-      args:
-        executable: /bin/bash
+        cd /var/www/frontend
+        tar -xzf /tmp/frontend-build.tar.gz
+        rm /tmp/frontend-build.tar.gz
+        chown -R www-data:www-data /var/www/frontend
 
-    - name: Copier le build Frontend pré-compilé
-      synchronize:
-        src: ./frontend/dist/
-        dest: /var/www/frontend/
-        recursive: yes
-
-    - name: Configurer Nginx
+    - name: Configurer Nginx pour servir les fichiers statiques
       template:
-        src: templates/nginx.conf.j2
-        dest: /etc/nginx/sites-available/default
-      notify:
-        - Restart Nginx
+        src: nginx-frontend.conf.j2
+        dest: /etc/nginx/sites-available/frontend
+      notify: restart nginx
 
-  handlers:
-    - name: Restart Nginx
-      service:
-        name: nginx
-        state: restarted
+    - name: Activer le site frontend
+      file:
+        src: /etc/nginx/sites-available/frontend
+        dest: /etc/nginx/sites-enabled/frontend
+        state: link
+      notify: restart nginx
