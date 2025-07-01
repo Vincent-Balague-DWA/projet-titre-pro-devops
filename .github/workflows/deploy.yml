@@ -72,6 +72,10 @@ jobs:
           echo "Contenu du dossier:"
           ls -la
           
+          # Vérifier le Dockerfile
+          echo "Contenu du Dockerfile:"
+          cat Dockerfile
+          
           # Forcer l'utilisation de docker build standard
           export DOCKER_BUILDKIT=0
           export COMPOSE_DOCKER_CLI_BUILD=0
@@ -82,17 +86,20 @@ jobs:
           
           echo "Building image: $USERNAME/devops-todolist:$IMAGE_TAG"
           
-          # Build de l'image étape par étape
-          docker build -t "$USERNAME/devops-todolist:$IMAGE_TAG" .
+          # Build de l'image avec verbosité maximale
+          echo "🔨 Début du build Docker..."
+          docker build --no-cache --progress=plain -t "$USERNAME/devops-todolist:$IMAGE_TAG" . 2>&1
           echo "✅ Image avec tag temporaire créée"
           
-          docker build -t "$USERNAME/devops-todolist:latest" .
-          echo "✅ Image latest créée"
+          docker tag "$USERNAME/devops-todolist:$IMAGE_TAG" "$USERNAME/devops-todolist:latest"
+          echo "✅ Tag latest créé"
           
           # Push des images
+          echo "📤 Push de l'image avec tag..."
           docker push "$USERNAME/devops-todolist:$IMAGE_TAG"
           echo "✅ Image avec tag poussée"
           
+          echo "📤 Push de l'image latest..."
           docker push "$USERNAME/devops-todolist:latest"
           echo "✅ Image latest poussée"
           
