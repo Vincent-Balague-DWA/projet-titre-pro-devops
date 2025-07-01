@@ -29,6 +29,25 @@
         state: present
         login_unix_socket: /var/run/mysqld/mysqld.sock
 
+    # ===== DATADOG MONITORING DATABASE =====
+    - name: Installer Datadog Agent
+      shell: |
+        DD_API_KEY={{ datadog_api_key }} \
+        DD_SITE="datadoghq.eu" \
+        bash -c "$(curl -L https://s3.amazonaws.com/dd-agent/scripts/install_script.sh)"
+
+    - name: Configurer Datadog pour MySQL
+      template:
+        src: mysql-datadog.yaml.j2
+        dest: /etc/datadog-agent/conf.d/mysql.d/conf.yaml
+      notify: restart datadog
+
+    - name: Démarrer Datadog Agent
+      systemd:
+        name: datadog-agent
+        state: started
+        enabled: yes
+
 - name: Déployer l'API Backend (NestJS) avec Docker
   hosts: backend
   become: yes
@@ -86,6 +105,25 @@
       debug:
         msg: "Backend container status: {{ container_status.stdout }}"
 
+    # ===== DATADOG MONITORING BACKEND =====
+    - name: Installer Datadog Agent
+      shell: |
+        DD_API_KEY={{ datadog_api_key }} \
+        DD_SITE="datadoghq.eu" \
+        bash -c "$(curl -L https://s3.amazonaws.com/dd-agent/scripts/install_script.sh)"
+
+    - name: Configurer Datadog pour Docker
+      template:
+        src: docker-datadog.yaml.j2
+        dest: /etc/datadog-agent/conf.d/docker.d/conf.yaml
+      notify: restart datadog
+
+    - name: Démarrer Datadog Agent
+      systemd:
+        name: datadog-agent
+        state: started
+        enabled: yes
+
 - name: Déployer le Frontend React avec Nginx
   hosts: frontend
   become: yes
@@ -136,7 +174,32 @@
         state: started
         enabled: yes
 
+    # ===== DATADOG MONITORING FRONTEND =====
+    - name: Installer Datadog Agent
+      shell: |
+        DD_API_KEY={{ datadog_api_key }} \
+        DD_SITE="datadoghq.eu" \
+        bash -c "$(curl -L https://s3.amazonaws.com/dd-agent/scripts/install_script.sh)"
+
+    - name: Configurer Datadog pour Nginx
+      template:
+        src: nginx-datadog.yaml.j2
+        dest: /etc/datadog-agent/conf.d/nginx.d/conf.yaml
+      notify: restart datadog
+
+    - name: Démarrer Datadog Agent
+      systemd:
+        name: datadog-agent
+        state: started
+        enabled: yes
+
+# ===== HANDLERS - À LA TOUTE FIN DU FICHIER =====
   handlers:
+    - name: restart datadog
+      systemd:
+        name: datadog-agent
+        state: restarted
+        
     - name: restart nginx
       systemd:
         name: nginx

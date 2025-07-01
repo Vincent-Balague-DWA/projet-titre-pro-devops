@@ -1,0 +1,15 @@
+# ===== ansible/templates/docker-datadog.yaml.j2 =====
+init_config:
+
+instances:
+    - url: "unix://var/run/docker.sock"
+        collect_images_stats: true
+        collect_container_size: true
+        collect_volume_count: true
+        collect_events: true
+
+logs:
+    - type: docker
+        image: "*/devops-todolist"
+        service: "backend"
+        source: "nestjs"

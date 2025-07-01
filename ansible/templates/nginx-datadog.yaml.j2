@@ -1,0 +1,17 @@
+# ===== ansible/templates/nginx-datadog.yaml.j2 =====
+init_config:
+
+instances:
+    - nginx_status_url: http://localhost/nginx_status/
+        tags:
+        - instance:frontend
+
+logs:
+    - type: file
+        path: /var/log/nginx/access.log
+        service: nginx
+        source: nginx
+    - type: file
+        path: /var/log/nginx/error.log  
+        service: nginx
+        source: nginx

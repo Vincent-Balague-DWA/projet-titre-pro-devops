@@ -1,0 +1,25 @@
+# ===== ansible/templates/mysql-datadog.yaml.j2 =====
+init_config:
+
+instances:
+    - server: 127.0.0.1
+        user: {{ db_user }}
+        pass: {{ db_password }}
+        port: 3306
+        sock: /var/run/mysqld/mysqld.sock
+        tags:
+        - db:{{ db_name }}
+    options:
+        replication: false
+        extra_status_metrics: true
+        extra_innodb_metrics: true
+
+logs:
+    - type: file
+        path: /var/log/mysql/error.log
+        service: mysql
+        source: mysql
+    - type: file  
+        path: /var/log/mysql/mysql-slow.log
+        service: mysql
+        source: mysql
