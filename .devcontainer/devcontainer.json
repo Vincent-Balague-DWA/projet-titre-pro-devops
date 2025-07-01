@@ -1,0 +1,69 @@
+{
+    "name": "DevOps Project - Debian",
+    "image": "mcr.microsoft.com/devcontainers/base:debian",
+
+    // Features à installer
+    "features": {
+        "ghcr.io/devcontainers/features/terraform:1": {
+            "version": "latest"
+        },
+        "ghcr.io/devcontainers/features/aws-cli:1": {
+            "version": "latest"
+        },
+        "ghcr.io/devcontainers/features/kubectl-helm-minikube:1": {
+            "version": "latest"
+        },
+        "ghcr.io/devcontainers/features/python:1": {
+            "version": "3.10"
+        },
+        "ghcr.io/devcontainers/features/docker-in-docker:2": {
+            "version": "latest"
+        },
+        "ghcr.io/devcontainers/features/node:1": {
+            "version": "18"
+        }
+    },
+
+    // Commandes à exécuter après la création du container
+    "postCreateCommand": "bash .devcontainer/post-create.sh",
+
+    // Extensions VS Code à installer
+    "customizations": {
+        "vscode": {
+        "extensions": [
+            // Terraform
+            "hashicorp.terraform",
+            // Ansible
+            "redhat.ansible",
+            // YAML
+            "redhat.vscode-yaml",
+            // Kubernetes
+            "ms-kubernetes-tools.vscode-kubernetes-tools",
+            // Docker
+            "ms-azuretools.vscode-docker",
+            // Git
+            "eamodio.gitlens",
+            // Markdown
+            "yzhang.markdown-all-in-one"
+        ],
+        "settings": {
+            "terminal.integrated.defaultProfile.linux": "bash",
+            "files.insertFinalNewline": true,
+            "files.trimTrailingWhitespace": true
+        }
+        }
+    },
+
+    // Ports à exposer
+    "forwardPorts": [80, 443, 6443, 3306],
+
+    // Variables d'environnement
+    "remoteEnv": {
+        "PROJECT_NAME": "devops-k3s"
+    },
+
+    // Monter la clé SSH depuis Windows
+    "mounts": [
+        "source=${localEnv:USERPROFILE}/.ssh,target=/home/vscode/.ssh,type=bind,consistency=cached"
+    ]
+}

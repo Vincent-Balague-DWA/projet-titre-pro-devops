@@ -1,0 +1,4 @@
+*.log
+*.retry
+kubeconfig.yaml
+.DS_Store

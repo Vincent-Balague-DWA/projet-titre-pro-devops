@@ -1,0 +1,126 @@
+# Playbook complet pour déployer l'architecture React + NestJS + MySQL
+
+- name: Provisionner la base de données MySQL
+  hosts: database
+  become: yes
+  tasks:
+    - name: Installer MySQL Server
+      apt:
+        name: mysql-server
+        state: present
+        update_cache: yes
+
+    - name: Installer PyMySQL pour les modules Ansible
+      apt:
+        name: python3-pymysql
+        state: present
+
+    - name: Créer la base de données
+      community.mysql.mysql_db:
+        name: "{{ db_name }}"
+        state: present
+        login_unix_socket: /var/run/mysqld/mysqld.sock
+
+    - name: Créer un utilisateur MySQL
+      community.mysql.mysql_user:
+        name: "{{ db_user }}"
+        password: "{{ db_password }}"
+        priv: "{{ db_name }}.*:ALL"
+        state: present
+        login_unix_socket: /var/run/mysqld/mysqld.sock
+
+- name: Déployer l'API Backend (NestJS)
+  hosts: backend
+  become: yes
+  tasks:
+    - name: Supprimer Node.js et dépendances anciennes
+      apt:
+        name:
+          - nodejs
+          - libnode-dev
+          - libnode72
+        state: absent
+      ignore_errors: yes
+
+    - name: Nettoyer les paquets inutiles
+      apt:
+        autoremove: yes
+      ignore_errors: yes
+
+    - name: Ajouter le dépôt NodeSource (18.x) et installer Node.js 18
+      shell: |
+        curl -fsSL https://deb.nodesource.com/setup_18.x | bash -
+        apt-get install -y nodejs
+      args:
+        executable: /bin/bash
+
+    - name: Installer PM2
+      npm:
+        name: pm2
+        global: yes
+
+    - name: Copier le code Backend
+      synchronize:
+        src: ./backend/
+        dest: /var/www/backend/
+        recursive: yes
+
+    - name: Installer les dépendances Backend
+      shell: |
+        cd /var/www/backend
+        npm install
+
+    - name: Lancer l'application Backend avec PM2
+      shell: |
+        cd /var/www/backend
+        pm2 start dist/main.js --name backend
+        pm2 save
+
+    - name: Configurer le démarrage automatique de PM2
+      shell: |
+        env PATH=$PATH:/usr/bin pm2 startup systemd -u ubuntu --hp /home/ubuntu
+      become: yes
+
+- name: Déployer le Frontend React avec Nginx
+  hosts: frontend
+  become: yes
+  tasks:
+    - name: Supprimer Node.js et dépendances anciennes
+      apt:
+        name:
+          - nodejs
+          - libnode-dev
+          - libnode72
+        state: absent
+      ignore_errors: yes
+
+    - name: Nettoyer les paquets inutiles
+      apt:
+        autoremove: yes
+      ignore_errors: yes
+
+    - name: Ajouter le dépôt NodeSource (18.x) et installer Node.js 18 et Nginx
+      shell: |
+        curl -fsSL https://deb.nodesource.com/setup_18.x | bash -
+        apt-get install -y nodejs nginx
+      args:
+        executable: /bin/bash
+
+    - name: Copier le build Frontend pré-compilé
+      synchronize:
+        src: ./frontend/dist/
+        dest: /var/www/frontend/
+        recursive: yes
+
+    - name: Configurer Nginx
+      template:
+        src: templates/nginx.conf.j2
+        dest: /etc/nginx/sites-available/default
+      notify:
+        - Restart Nginx
+
+  handlers:
+    - name: Restart Nginx
+      service:
+        name: nginx
+        state: restarted
