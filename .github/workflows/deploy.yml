@@ -59,6 +59,10 @@ jobs:
 
       - name: Déployer l'application avec Ansible
         working-directory: ./ansible
+        env:
+          DB_NAME: ${{ secrets.DB_NAME }}
+          DB_USER: ${{ secrets.DB_USER }}
+          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
         run: |
           chmod +x deploy-simple.sh
           # Modifier le script pour utiliser la bonne clé SSH
