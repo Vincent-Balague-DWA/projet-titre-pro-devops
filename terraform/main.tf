@@ -65,7 +65,7 @@ resource "aws_security_group" "frontend" {
         from_port   = 22
         to_port     = 22
         protocol    = "tcp"
-        cidr_blocks = var.allowed_ssh_ips
+        cidr_blocks = ["0.0.0.0/0"]
     }
 
     # HTTP
@@ -106,7 +106,7 @@ resource "aws_security_group" "backend" {
         from_port   = 22
         to_port     = 22
         protocol    = "tcp"
-        cidr_blocks = var.allowed_ssh_ips
+        cidr_blocks = ["0.0.0.0/0"]
     }
 
     # API (port 3000 pour NestJS)
@@ -139,7 +139,7 @@ resource "aws_security_group" "database" {
         from_port   = 22
         to_port     = 22
         protocol    = "tcp"
-        cidr_blocks = var.allowed_ssh_ips
+        cidr_blocks = ["0.0.0.0/0"]
     }
 
     # MySQL depuis le backend
