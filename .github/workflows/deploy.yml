@@ -78,6 +78,11 @@ jobs:
           terraform apply -auto-approve
           echo "✅ Infrastructure déployée"
 
+      - name: Attendre que les instances soient prêtes pour SSH
+        run: |
+          echo "⏳ Attente de l'initialisation des instances EC2..."
+          sleep 120
+
       - name: Transférer les builds sur les serveurs
         working-directory: ./terraform
         run: |
@@ -99,11 +104,6 @@ jobs:
             ../backend-build.tar.gz ubuntu@$BACKEND_IP:/tmp/
           
           echo "✅ Builds transférés"
-
-      - name: Attendre que les instances soient prêtes pour SSH
-        run: |
-          echo "⏳ Attente de l'initialisation des instances EC2..."
-          sleep 120
 
       - name: Déployer l'application avec Ansible
         working-directory: ./ansible
