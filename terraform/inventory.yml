@@ -1,0 +1,26 @@
+all:
+  children:
+    database:
+      hosts:
+        database-server:
+          ansible_host: 3.250.89.140
+          ansible_user: ubuntu
+          ansible_ssh_private_key_file: ~/.ssh/id_rsa_devops
+
+    backend:
+      hosts:
+        backend-server:
+          ansible_host: 3.253.54.121
+          ansible_user: ubuntu
+          ansible_ssh_private_key_file: ~/.ssh/id_rsa_devops
+
+    frontend:
+      hosts:
+        frontend-server:
+          ansible_host: 54.194.236.47
+          ansible_user: ubuntu
+          ansible_ssh_private_key_file: ~/.ssh/id_rsa_devops
+
+  vars:
+    ansible_python_interpreter: /usr/bin/python3
+    ansible_ssh_common_args: '-o StrictHostKeyChecking=no'
