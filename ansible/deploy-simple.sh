@@ -92,7 +92,10 @@ echo ""
 
 # Déploiement
 echo "📦 Déploiement des applications..."
-ANSIBLE_HOST_KEY_CHECKING=False ansible-playbook -i inventory.yml deploy-apps.yml -v
+ANSIBLE_HOST_KEY_CHECKING=False ansible-playbook -i inventory.yml deploy-apps.yml -v \
+  -e "db_name=${DB_NAME}" \
+  -e "db_user=${DB_USER}" \
+  -e "db_password=${DB_PASSWORD}"
 
 if [ $? -eq 0 ]; then
     echo ""
