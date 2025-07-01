@@ -41,12 +41,12 @@ jobs:
           chmod 600 ~/.ssh/id_rsa
 
       - name: Déployer l’infrastructure avec Terraform
-        working-directory: ./terraform
+        working-directory: ../terraform
         run: |
           terraform init
           terraform apply -auto-approve
 
       - name: Déployer l’application avec Ansible
-        working-directory: ./ansible
+        working-directory: ../ansible
         run: |
           ansible-playbook -i inventory.yml deploy-apps.yml --verbose
