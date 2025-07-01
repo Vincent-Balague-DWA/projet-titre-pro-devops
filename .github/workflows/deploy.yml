@@ -42,15 +42,6 @@ jobs:
         with:
           node-version: '18'
 
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v2
-
-      - name: Login to Docker Hub
-        uses: docker/login-action@v2
-        with:
-          username: ${{ secrets.DOCKER_USERNAME }}
-          password: ${{ secrets.DOCKER_PASSWORD }}
-
       - name: Compiler le Backend
         working-directory: ./backend
         run: |
@@ -59,23 +50,30 @@ jobs:
           npm run build
           echo "✅ Backend compilé"
 
+      - name: Login Docker Hub
+        run: |
+          echo "🔑 Connexion à Docker Hub..."
+          echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
+
       - name: Builder et pousser l'image Docker Backend
         working-directory: ./backend
         run: |
           echo "🐳 Build de l'image Docker Backend..."
           # Créer une image avec timestamp pour éviter les conflits
           IMAGE_TAG="backend-$(date +%Y%m%d-%H%M%S)"
+          
+          # Build de l'image
           docker build -t ${{ secrets.DOCKER_USERNAME }}/devops-todolist:$IMAGE_TAG .
           docker build -t ${{ secrets.DOCKER_USERNAME }}/devops-todolist:latest .
           
-          # Pousser les images
+          # Push des images
           docker push ${{ secrets.DOCKER_USERNAME }}/devops-todolist:$IMAGE_TAG
           docker push ${{ secrets.DOCKER_USERNAME }}/devops-todolist:latest
           
           # Sauvegarder le tag pour Ansible
           echo $IMAGE_TAG > ../docker-image-tag.txt
-          echo "✅ Image Docker créée et poussée"
-
+          echo "✅ Image Docker créée et poussée : $IMAGE_TAG"
+          
       - name: Compiler le Frontend
         working-directory: ./frontend
         run: |
