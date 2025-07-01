@@ -59,12 +59,8 @@
         name: pm2
         global: yes
 
-    - name: Copier le code Backend
-      synchronize:
-        src: ./backend/
-        dest: /var/www/backend/
-        recursive: yes
-
+    # ❌ SUPPRIMÉE : - name: Copier le code Backend (synchronize)
+    
     - name: Créer le dossier backend
       file:
         path: /var/www/backend
@@ -111,6 +107,12 @@
   hosts: frontend
   become: yes
   tasks:
+    - name: Installer Nginx
+      apt:
+        name: nginx
+        state: present
+        update_cache: yes
+
     - name: Créer le dossier frontend
       file:
         path: /var/www/frontend
@@ -132,9 +134,27 @@
         dest: /etc/nginx/sites-available/frontend
       notify: restart nginx
 
+    - name: Désactiver le site par défaut
+      file:
+        path: /etc/nginx/sites-enabled/default
+        state: absent
+      notify: restart nginx
+
     - name: Activer le site frontend
       file:
         src: /etc/nginx/sites-available/frontend
         dest: /etc/nginx/sites-enabled/frontend
         state: link
       notify: restart nginx
+
+    - name: Démarrer et activer Nginx
+      systemd:
+        name: nginx
+        state: started
+        enabled: yes
+
+  handlers:
+    - name: restart nginx
+      systemd:
+        name: nginx
+        state: restarted
