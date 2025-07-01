@@ -15,6 +15,10 @@ provider "aws" {
     region = var.aws_region
 }
 
+locals {
+    timestamp = formatdate("MMdd-hhmm", timestamp())
+}
+
 # ===========================================
 # DATA SOURCES
 # ===========================================
@@ -47,13 +51,13 @@ resource "aws_default_vpc" "default" {
 
 # Clé SSH
 resource "aws_key_pair" "main" {
-    key_name   = "${var.project_name}-key"
+    key_name   = "devops-todouxlist-key-${local.timestamp}"
     public_key = file(var.ssh_public_key_path)
 }
 
 # Security Group Frontend
 resource "aws_security_group" "frontend" {
-    name        = "${var.project_name}-frontend-sg"
+    name        = "devops-todouxlist-frontend-sg-${local.timestamp}"
     description = "Security group pour Frontend"
 
     # SSH
@@ -94,7 +98,7 @@ resource "aws_security_group" "frontend" {
 
 # Security Group Backend
 resource "aws_security_group" "backend" {
-    name        = "${var.project_name}-backend-sg"
+    name        = "devops-todouxlist-backend-sg-${local.timestamp}"
     description = "Security group pour Backend"
 
     # SSH
@@ -127,7 +131,7 @@ resource "aws_security_group" "backend" {
 
 # Security Group Database
 resource "aws_security_group" "database" {
-    name        = "${var.project_name}-database-sg"
+    name        = "devops-todouxlist-database-sg-${local.timestamp}"
     description = "Security group pour Database"
 
     # SSH
