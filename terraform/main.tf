@@ -16,7 +16,7 @@ provider "aws" {
 }
 
 locals {
-    timestamp = formatdate("MMdd-hhmm", timestamp())
+    timestamp = formatdate("MMDD-hhmm", timestamp())
 }
 
 # ===========================================
